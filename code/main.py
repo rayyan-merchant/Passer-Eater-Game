@@ -1,5 +1,8 @@
 import pygame
 import sys
+from easy import easy_mode
+from medium import medium_mode
+from hard import hard_mode
 
 pygame.init()
 
@@ -36,6 +39,7 @@ MENU_MAIN = 0
 MENU_GAME_TYPE = 1
 MENU_HUMAN_VS_HUMAN_INPUT = 2
 MENU_HUMAN_VS_AI_INPUT = 3
+MENU_AI_DIFFICULTY = 4  # New menu state for difficulty selection
 current_menu = MENU_MAIN
 
 # Player names
@@ -44,6 +48,9 @@ player2_name = ""
 ai_player_name = "AI"
 human_player_name = ""
 active_input = None
+
+# AI difficulty
+ai_difficulty = None  # Can be "Easy", "Medium", or "Hard"
 
 # Load sun and moon images (or use text symbols if images aren't available)
 try:
@@ -145,12 +152,28 @@ def back_to_main():
     current_menu = MENU_MAIN
 
 
+def back_to_game_selection():
+    global current_menu
+    current_menu = MENU_GAME_TYPE
+
+
 def show_human_vs_human_input():
     global current_menu, player1_name, player2_name, active_input
     current_menu = MENU_HUMAN_VS_HUMAN_INPUT
     player1_name = ""
     player2_name = ""
     active_input = None
+
+
+def show_ai_difficulty_selection():
+    global current_menu
+    current_menu = MENU_AI_DIFFICULTY
+
+
+def set_difficulty(difficulty):
+    global ai_difficulty, current_menu
+    ai_difficulty = difficulty
+    show_human_vs_ai_input()
 
 
 def show_human_vs_ai_input():
@@ -170,8 +193,17 @@ def start_human_vs_human_game():
 
 def start_human_vs_ai_game():
     if human_player_name.strip():
-        print(f"Starting Human vs AI game with player: {human_player_name} against AI")
-        # Game logic would start here
+        print(f"Starting Human vs AI game with player: {human_player_name} against AI on {ai_difficulty} difficulty")
+        # Load appropriate AI module based on difficulty
+        if ai_difficulty == "Easy":
+            print("Loading easy_ai.py module")
+            # Import and use easy_ai module here
+        elif ai_difficulty == "Medium":
+            print("Loading medium_ai.py module")
+            # Import and use medium_ai module here
+        elif ai_difficulty == "Hard":
+            print("Loading hard_ai.py module")
+            # Import and use hard_ai module here
     else:
         print("Please enter your name")
 
@@ -266,8 +298,16 @@ main_menu_buttons = [
 # --- Game Type Selection Buttons ---
 game_type_buttons = [
     Button("Player vs Player", 200, 200, 600, 80, show_human_vs_human_input),
-    Button("Player vs Computer", 200, 320, 600, 80, show_human_vs_ai_input),
+    Button("Player vs Computer", 200, 320, 600, 80, show_ai_difficulty_selection),
     Button("Back", 200, 440, 600, 80, back_to_main),
+]
+
+# --- Difficulty Selection Buttons ---
+difficulty_buttons = [
+    Button("Easy", 200, 160, 600, 80, lambda: set_difficulty("Easy")),
+    Button("Medium", 200, 260, 600, 80, lambda: set_difficulty("Medium")),
+    Button("Hard", 200, 360, 600, 80, lambda: set_difficulty("Hard")),
+    Button("Back", 200, 460, 600, 80, back_to_game_selection),
 ]
 
 # --- Input boxes for Human vs Human ---
@@ -279,7 +319,7 @@ human_vs_human_back_button = Button("Back", 350, 480, 300, 60, show_game_selecti
 # --- Input box for Human vs AI ---
 human_player_input = InputBox(250, 250, 500, 50, "Enter Your Name:")
 human_vs_ai_start_button = Button("Start Game", 350, 350, 300, 60, start_human_vs_ai_game)
-human_vs_ai_back_button = Button("Back", 350, 430, 300, 60, show_game_selection)
+human_vs_ai_back_button = Button("Back", 350, 430, 300, 60, show_ai_difficulty_selection)
 
 
 # --- Main Game Loop ---
@@ -319,6 +359,11 @@ def main_menu():
             # Game type selection buttons
             elif current_menu == MENU_GAME_TYPE:
                 for button in game_type_buttons:
+                    button.check_click(event)
+
+            # AI difficulty selection
+            elif current_menu == MENU_AI_DIFFICULTY:
+                for button in difficulty_buttons:
                     button.check_click(event)
 
             # Human vs Human input handling
@@ -368,6 +413,16 @@ def main_menu():
             for button in game_type_buttons:
                 button.draw(SCREEN, button_color, hover_color, text_color)
 
+        elif current_menu == MENU_AI_DIFFICULTY:
+            # Draw select difficulty title
+            diff_text = FONT.render("SELECT DIFFICULTY", True, text_color)
+            diff_rect = diff_text.get_rect(center=(SCREEN.get_width() // 2, 100))
+            SCREEN.blit(diff_text, diff_rect)
+
+            # Draw difficulty buttons
+            for button in difficulty_buttons:
+                button.draw(SCREEN, button_color, hover_color, text_color)
+
         elif current_menu == MENU_HUMAN_VS_HUMAN_INPUT:
             # Draw title
             title_text = FONT.render("ENTER PLAYER NAMES", True, text_color)
@@ -383,8 +438,8 @@ def main_menu():
             human_vs_human_back_button.draw(SCREEN, button_color, hover_color, text_color)
 
         elif current_menu == MENU_HUMAN_VS_AI_INPUT:
-            # Draw title
-            title_text = FONT.render("ENTER YOUR NAME", True, text_color)
+            # Draw title with difficulty info
+            title_text = FONT.render(f"ENTER YOUR NAME ({ai_difficulty} Mode)", True, text_color)
             title_rect = title_text.get_rect(center=(SCREEN.get_width() // 2, 100))
             SCREEN.blit(title_text, title_rect)
 
@@ -406,4 +461,5 @@ def main_menu():
         clock.tick(60)  # Cap at 60 FPS
 
 
+# Start the game
 main_menu()
