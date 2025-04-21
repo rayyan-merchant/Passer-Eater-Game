@@ -47,9 +47,9 @@ class GameState:
         visited.add((i, j))
         return any(dfs(i + di, j + dj) for di, dj in [(1, 0), (0, -1), (0, 1), (1, -1), (1, 1)])
 
-    passer_wins = any(dfs(0, j) for j in range(self.size) if self.board[0][j] == 'P')
-    self.passer_win_cache = passer_wins
-    return self.passer_win_cache
+        passer_wins = any(dfs(0, j) for j in range(self.size) if self.board[0][j] == 'P')
+        self.passer_win_cache = passer_wins
+        return self.passer_win_cache
     
     def check_eater_win(self):
         if self.eater_win_cache is not None:
