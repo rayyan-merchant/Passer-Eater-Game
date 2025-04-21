@@ -32,24 +32,25 @@ class GameState:
         elif player == 'P' and self.board[i][j] is None:
             self.board[i][j] = 'P'
             self.passer_last_move = (i, j)  # Update Passer's last move
-
     def check_passer_win(self):
-        if self.passer_win_cache is not None:
-            return self.passer_win_cache
-
-        visited = set()
-        def dfs(i, j):
-            if i == self.size - 1 and self.board[i][j] == 'P':  # Reached bottom row with a 'P'
-                return True
-            if (i, j) in visited or i < 0 or i >= self.size or j < 0 or j >= self.size or self.board[i][j] != 'P':
-                return False
-            visited.add((i, j))
-            return any(dfs(i + di, j + dj) for di, dj in [(1, 0), (0, -1), (0, 1), (1, -1), (1, 1)])
-
-        passer_wins = any(dfs(0, j) for j in range(self.size) if self.board[0][j] == 'P')
-        self.passer_win_cache = passer_wins
+    if self.passer_win_cache is not None:
         return self.passer_win_cache
 
+    visited = set()
+    def dfs(i, j):
+        # First, check if indices are out of bounds or invalid
+        if (i, j) in visited or i < 0 or i >= self.size or j < 0 or j >= self.size or self.board[i][j] != 'P':
+            return False
+        # Now safe to check the base case
+        if i == self.size - 1:
+            return True
+        visited.add((i, j))
+        return any(dfs(i + di, j + dj) for di, dj in [(1, 0), (0, -1), (0, 1), (1, -1), (1, 1)])
+
+    passer_wins = any(dfs(0, j) for j in range(self.size) if self.board[0][j] == 'P')
+    self.passer_win_cache = passer_wins
+    return self.passer_win_cache
+    
     def check_eater_win(self):
         if self.eater_win_cache is not None:
             return self.eater_win_cache
