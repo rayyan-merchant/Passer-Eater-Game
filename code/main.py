@@ -1,8 +1,8 @@
 import pygame
 import sys
 from easy import easy_mode
-from medium import medium_mode
-from hard import hard_mode
+# from medium import medium_mode
+from hard import play_game  # Import play_game directly
 
 pygame.init()
 
@@ -10,10 +10,11 @@ WIDTH, HEIGHT = 1000, 600
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("PASSER EATER")
 
-FONT_T = pygame.font.Font("font/RubikMonoOne-Regular.ttf", 36)
-FONT = pygame.font.Font("font/RubikMonoOne-Regular.ttf", 32)
-FONT2 = pygame.font.Font("font/RubikMonoOne-Regular.ttf", 15)
-INPUT_FONT = pygame.font.Font("font/RubikMonoOne-Regular.ttf", 24)
+# Use relative paths assuming main.py is in the 'code' folder
+FONT_T = pygame.font.Font(r"code\font\RubikMonoOne-Regular.ttf", 36)
+FONT = pygame.font.Font(r"code\font\RubikMonoOne-Regular.ttf", 32)
+FONT2 = pygame.font.Font(r"code\font\RubikMonoOne-Regular.ttf", 15)
+INPUT_FONT = pygame.font.Font(r"code\font\RubikMonoOne-Regular.ttf", 24)
 
 # Light Mode Colors
 LIGHT_BG_COLOR = (255, 255, 255)
@@ -39,7 +40,8 @@ MENU_MAIN = 0
 MENU_GAME_TYPE = 1
 MENU_HUMAN_VS_HUMAN_INPUT = 2
 MENU_HUMAN_VS_AI_INPUT = 3
-MENU_AI_DIFFICULTY = 4  # New menu state for difficulty selection
+MENU_AI_DIFFICULTY = 4
+MENU_HUMAN_VS_HUMAN_DIFFICULTY = 5
 current_menu = MENU_MAIN
 
 # Player names
@@ -49,22 +51,26 @@ ai_player_name = "AI"
 human_player_name = ""
 active_input = None
 
-# AI difficulty
-ai_difficulty = None  # Can be "Easy", "Medium", or "Hard"
+# Difficulties
+ai_difficulty = None
+human_vs_human_difficulty = None
 
-# Load sun and moon images (or use text symbols if images aren't available)
+# Define image variables as None initially
+sun_img = None
+moon_img = None
+has_images = False
+
+# Load sun and moon images with relative paths
 try:
-    sun_img = pygame.image.load(r"sunn.png").convert_alpha()
-    moon_img = pygame.image.load(r"moon.webp").convert_alpha()
+    sun_img = pygame.image.load(r"code\sunn.png").convert_alpha()
+    moon_img = pygame.image.load(r"code\moon.webp").convert_alpha()
     sun_img = pygame.transform.scale(sun_img, (30, 30))
     moon_img = pygame.transform.scale(moon_img, (30, 30))
     has_images = True
-except:
-    has_images = False
-    print("Image files not found, using text symbols instead")
+except Exception as e:
+    print(f"Image files not found, using text symbols instead: {e}")
 
-
-# --- Button Class ---
+# Button Class
 class Button:
     def __init__(self, text, x, y, width, height, callback, image=None):
         self.text = text
@@ -89,8 +95,7 @@ class Button:
         if event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(event.pos):
             self.callback()
 
-
-# --- Input Box Class ---
+# Input Box Class
 class InputBox:
     def __init__(self, x, y, width, height, label="", text=""):
         self.rect = pygame.Rect(x, y, width, height)
@@ -115,66 +120,68 @@ class InputBox:
             elif event.key == pygame.K_BACKSPACE:
                 self.text = self.text[:-1]
             else:
-                # Only add characters if the length is less than 15
-                if len(self.text) < 15 and event.unicode.isalnum() or event.unicode == " ":
+                if len(self.text) < 15 and (event.unicode.isalnum() or event.unicode == " "):
                     self.text += event.unicode
         return False
 
     def draw(self, surface, bg_color, active_color, text_color):
-        # Draw the label
         label_surface = FONT2.render(self.label, True, text_color)
         surface.blit(label_surface, (self.rect.x, self.rect.y - 30))
-
-        # Draw the input box
         pygame.draw.rect(surface, active_color if self.active else bg_color, self.rect, border_radius=10)
-        pygame.draw.rect(surface, text_color, self.rect, 2, border_radius=10)  # Border
-
-        # Draw the text
+        pygame.draw.rect(surface, text_color, self.rect, 2, border_radius=10)
         text_surface = INPUT_FONT.render(self.text, True, text_color)
         surface.blit(text_surface, (self.rect.x + 10, self.rect.y + 10))
-
-        # Draw cursor if active
         if self.active and pygame.time.get_ticks() % 1000 < 500:
             text_width = INPUT_FONT.size(self.text)[0]
             cursor_pos = self.rect.x + 10 + text_width
             pygame.draw.line(surface, text_color, (cursor_pos, self.rect.y + 10),
                              (cursor_pos, self.rect.y + self.rect.height - 10), 2)
 
-
-# --- Button Callbacks ---
+# Button Callbacks
 def show_game_selection():
     global current_menu
     current_menu = MENU_GAME_TYPE
-
 
 def back_to_main():
     global current_menu
     current_menu = MENU_MAIN
 
-
 def back_to_game_selection():
     global current_menu
     current_menu = MENU_GAME_TYPE
 
+def back_to_difficulty_selection():
+    global current_menu
+    current_menu = MENU_HUMAN_VS_HUMAN_DIFFICULTY
 
 def show_human_vs_human_input():
+    global current_menu
+    current_menu = MENU_HUMAN_VS_HUMAN_DIFFICULTY  # First go to difficulty selection
+
+def show_human_vs_human_difficulty():
+    global current_menu
+    current_menu = MENU_HUMAN_VS_HUMAN_DIFFICULTY
+
+def show_human_vs_human_names():
     global current_menu, player1_name, player2_name, active_input
     current_menu = MENU_HUMAN_VS_HUMAN_INPUT
     player1_name = ""
     player2_name = ""
     active_input = None
 
-
 def show_ai_difficulty_selection():
     global current_menu
     current_menu = MENU_AI_DIFFICULTY
 
-
-def set_difficulty(difficulty):
+def set_ai_difficulty(difficulty):
     global ai_difficulty, current_menu
     ai_difficulty = difficulty
     show_human_vs_ai_input()
 
+def set_human_vs_human_difficulty(difficulty):
+    global human_vs_human_difficulty, current_menu
+    human_vs_human_difficulty = difficulty
+    show_human_vs_human_names()  # Transition to name input after difficulty selection
 
 def show_human_vs_ai_input():
     global current_menu, human_player_name, active_input
@@ -182,35 +189,38 @@ def show_human_vs_ai_input():
     human_player_name = ""
     active_input = None
 
-
 def start_human_vs_human_game():
     if player1_name.strip() and player2_name.strip():
-        print(f"Starting Human vs Human game with players: {player1_name} and {player2_name}")
-        # Game logic would start here
+        print(f"Starting Human vs Human game with players: {player1_name} and {player2_name} on {human_vs_human_difficulty} difficulty")
+        if human_vs_human_difficulty == "Easy":
+            print("Loading easy_mode")
+            easy_mode()
+        elif human_vs_human_difficulty == "Medium":
+            print("Loading medium_mode")
+            # medium_mode()
+        elif human_vs_human_difficulty == "Hard":
+            print("Loading hard_mode")
+            play_game(9)  # Call play_game from hard.py with size=9
     else:
         print("Please enter names for both players")
-
 
 def start_human_vs_ai_game():
     if human_player_name.strip():
         print(f"Starting Human vs AI game with player: {human_player_name} against AI on {ai_difficulty} difficulty")
-        # Load appropriate AI module based on difficulty
         if ai_difficulty == "Easy":
-            print("Loading easy_ai.py module")
-            # Import and use easy_ai module here
+            print("Loading easy_mode")
+            easy_mode()
         elif ai_difficulty == "Medium":
-            print("Loading medium_ai.py module")
-            # Import and use medium_ai module here
+            print("Loading medium_mode")
+            # medium_mode()
         elif ai_difficulty == "Hard":
-            print("Loading hard_ai.py module")
-            # Import and use hard_ai module here
+            print("Loading hard_mode")
+            play_game(9)  # Call play_game from hard.py with size=9
     else:
         print("Please enter your name")
 
-
 def show_instructions():
     running = True
-
     while running:
         bg_color = DARK_BG_COLOR if is_dark_mode else LIGHT_BG_COLOR
         text_color = DARK_TEXT_COLOR if is_dark_mode else LIGHT_TEXT_COLOR
@@ -218,8 +228,6 @@ def show_instructions():
         hover_color = DARK_HOVER_COLOR if is_dark_mode else LIGHT_HOVER_COLOR
 
         SCREEN.fill(bg_color)
-
-        # Instruction text lines
         instructions = [
             "GAME INSTRUCTIONS",
             "",
@@ -250,90 +258,78 @@ def show_instructions():
             "",
             "Click       to return to the main menu."
         ]
-
-        # Draw each line
         y = 25
         for line in instructions:
             text_surface = FONT2.render(line, True, text_color)
             SCREEN.blit(text_surface, (30, y))
-            y += 20  # space between lines
-
-        # Draw the Back button with dynamic colors
+            y += 20
         back_button = pygame.Rect(100, 560, 80, 30)
         mouse_pos = pygame.mouse.get_pos()
         back_color = hover_color if back_button.collidepoint(mouse_pos) else button_color
         pygame.draw.rect(SCREEN, back_color, back_button, border_radius=5)
         back_text = FONT2.render("Back", True, text_color)
         SCREEN.blit(back_text, (back_button.x + 15, back_button.y + 5))
-
         pygame.display.flip()
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if back_button.collidepoint(event.pos):
-                    running = False  # return to main menu
-
-
-def exit_game():
-    pygame.quit()
-    sys.exit()
-
+                    running = False
 
 def toggle_mode():
     global is_dark_mode
     is_dark_mode = not is_dark_mode
 
-
-# --- Main Menu Buttons ---
+# Main Menu Buttons
 main_menu_buttons = [
-    Button("New Game", 200, 200, 600, 80, show_game_selection),
+    Button("Start Game", 200, 200, 600, 80, show_game_selection),
     Button("Instructions", 200, 320, 600, 80, show_instructions),
-    Button("Quit Game", 200, 440, 600, 80, exit_game),
 ]
 
-# --- Game Type Selection Buttons ---
+# Game Type Selection Buttons
 game_type_buttons = [
     Button("Player vs Player", 200, 200, 600, 80, show_human_vs_human_input),
-    Button("Player vs Computer", 200, 320, 600, 80, show_ai_difficulty_selection),
+    Button("Player vs AI", 200, 320, 600, 80, show_ai_difficulty_selection),
     Button("Back", 200, 440, 600, 80, back_to_main),
 ]
 
-# --- Difficulty Selection Buttons ---
-difficulty_buttons = [
-    Button("Easy", 200, 160, 600, 80, lambda: set_difficulty("Easy")),
-    Button("Medium", 200, 260, 600, 80, lambda: set_difficulty("Medium")),
-    Button("Hard", 200, 360, 600, 80, lambda: set_difficulty("Hard")),
+# Difficulty Selection Buttons for AI
+difficulty_buttons_ai = [
+    Button("Easy", 200, 160, 600, 80, lambda: set_ai_difficulty("Easy")),
+    Button("Medium", 200, 260, 600, 80, lambda: set_ai_difficulty("Medium")),
+    Button("Hard", 200, 360, 600, 80, lambda: set_ai_difficulty("Hard")),
     Button("Back", 200, 460, 600, 80, back_to_game_selection),
 ]
 
-# --- Input boxes for Human vs Human ---
+# Difficulty Selection Buttons for Human vs Human
+difficulty_buttons_human = [
+    Button("Easy", 200, 160, 600, 80, lambda: set_human_vs_human_difficulty("Easy")),
+    Button("Medium", 200, 260, 600, 80, lambda: set_human_vs_human_difficulty("Medium")),
+    Button("Hard", 200, 360, 600, 80, lambda: set_human_vs_human_difficulty("Hard")),
+    Button("Back", 200, 460, 600, 80, back_to_game_selection),  # Updated to go back to game type selection
+]
+
+# Input boxes and buttons for Human vs Human
 player1_input = InputBox(250, 200, 500, 50, "Enter Player 1 (Passer) Name:")
 player2_input = InputBox(250, 300, 500, 50, "Enter Player 2 (Eater) Name:")
 human_vs_human_start_button = Button("Start Game", 350, 400, 300, 60, start_human_vs_human_game)
-human_vs_human_back_button = Button("Back", 350, 480, 300, 60, show_game_selection)
+human_vs_human_back_button = Button("Back", 350, 480, 300, 60, back_to_difficulty_selection)  # Updated to go back to difficulty selection
 
-# --- Input box for Human vs AI ---
+# Input box and buttons for Human vs AI
 human_player_input = InputBox(250, 250, 500, 50, "Enter Your Name:")
 human_vs_ai_start_button = Button("Start Game", 350, 350, 300, 60, start_human_vs_ai_game)
 human_vs_ai_back_button = Button("Back", 350, 430, 300, 60, show_ai_difficulty_selection)
 
-
-# --- Main Game Loop ---
+# Main Game Loop
 def main_menu():
     global is_dark_mode, current_menu, player1_name, player2_name, human_player_name, active_input
-
-    # Create mode toggle button with appropriate image
     mode_button_img = moon_img if is_dark_mode else sun_img if has_images else None
     mode_button = Button("☀️" if not is_dark_mode else "🌙", 930, 20, 50, 50, toggle_mode, mode_button_img)
-
     clock = pygame.time.Clock()
 
     while True:
-        # Set colors based on current mode
         bg_color = DARK_BG_COLOR if is_dark_mode else LIGHT_BG_COLOR
         text_color = DARK_TEXT_COLOR if is_dark_mode else LIGHT_TEXT_COLOR
         button_color = DARK_BUTTON_COLOR if is_dark_mode else LIGHT_BUTTON_COLOR
@@ -343,123 +339,90 @@ def main_menu():
 
         SCREEN.fill(bg_color)
 
-        # Process events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                exit_game()
-
-            # Handle mode toggle button in all menus
+                pygame.quit()
+                sys.exit()
             mode_button.check_click(event)
-
-            # Main menu buttons
             if current_menu == MENU_MAIN:
                 for button in main_menu_buttons:
                     button.check_click(event)
-
-            # Game type selection buttons
             elif current_menu == MENU_GAME_TYPE:
                 for button in game_type_buttons:
                     button.check_click(event)
-
-            # AI difficulty selection
             elif current_menu == MENU_AI_DIFFICULTY:
-                for button in difficulty_buttons:
+                for button in diversity_buttons_ai:
                     button.check_click(event)
-
-            # Human vs Human input handling
             elif current_menu == MENU_HUMAN_VS_HUMAN_INPUT:
                 if player1_input.handle_event(event):
                     player1_name = player1_input.text
                     active_input = player2_input
                     player2_input.active = True
-
                 if player2_input.handle_event(event):
                     player2_name = player2_input.text
                     active_input = None
-
                 human_vs_human_start_button.check_click(event)
                 human_vs_human_back_button.check_click(event)
-
-            # Human vs AI input handling
+            elif current_menu == MENU_HUMAN_VS_HUMAN_DIFFICULTY:
+                for button in difficulty_buttons_human:
+                    button.check_click(event)
             elif current_menu == MENU_HUMAN_VS_AI_INPUT:
                 if human_player_input.handle_event(event):
                     human_player_name = human_player_input.text
                     active_input = None
-
                 human_vs_ai_start_button.check_click(event)
                 human_vs_ai_back_button.check_click(event)
 
-        # Draw UI elements based on current menu
         if current_menu == MENU_MAIN:
-            # Draw welcome message in main menu only
             line1 = FONT_T.render("WELCOME TO", True, text_color)
             line2 = FONT_T.render("PASSER EATER, CHAMP!", True, text_color)
             rect1 = line1.get_rect(center=(SCREEN.get_width() // 2, 50))
             rect2 = line2.get_rect(center=(SCREEN.get_width() // 2, 100))
             SCREEN.blit(line1, rect1)
             SCREEN.blit(line2, rect2)
-
-            # Draw main menu buttons
             for button in main_menu_buttons:
                 button.draw(SCREEN, button_color, hover_color, text_color)
-
         elif current_menu == MENU_GAME_TYPE:
-            # Draw select game mode title
             select_text = FONT.render("SELECT GAME MODE", True, text_color)
             select_rect = select_text.get_rect(center=(SCREEN.get_width() // 2, 100))
             SCREEN.blit(select_text, select_rect)
-
-            # Draw game type buttons
             for button in game_type_buttons:
                 button.draw(SCREEN, button_color, hover_color, text_color)
-
         elif current_menu == MENU_AI_DIFFICULTY:
-            # Draw select difficulty title
             diff_text = FONT.render("SELECT DIFFICULTY", True, text_color)
             diff_rect = diff_text.get_rect(center=(SCREEN.get_width() // 2, 100))
             SCREEN.blit(diff_text, diff_rect)
-
-            # Draw difficulty buttons
-            for button in difficulty_buttons:
+            for button in difficulty_buttons_ai:
                 button.draw(SCREEN, button_color, hover_color, text_color)
-
         elif current_menu == MENU_HUMAN_VS_HUMAN_INPUT:
-            # Draw title
             title_text = FONT.render("ENTER PLAYER NAMES", True, text_color)
             title_rect = title_text.get_rect(center=(SCREEN.get_width() // 2, 100))
             SCREEN.blit(title_text, title_rect)
-
-            # Draw input boxes
             player1_input.draw(SCREEN, input_bg, input_active, text_color)
             player2_input.draw(SCREEN, input_bg, input_active, text_color)
-
-            # Draw buttons
             human_vs_human_start_button.draw(SCREEN, button_color, hover_color, text_color)
             human_vs_human_back_button.draw(SCREEN, button_color, hover_color, text_color)
-
+        elif current_menu == MENU_HUMAN_VS_HUMAN_DIFFICULTY:
+            diff_text = FONT.render("SELECT DIFFICULTY", True, text_color)
+            diff_rect = diff_text.get_rect(center=(SCREEN.get_width() // 2, 100))
+            SCREEN.blit(diff_text, diff_rect)
+            for button in difficulty_buttons_human:
+                button.draw(SCREEN, button_color, hover_color, text_color)
         elif current_menu == MENU_HUMAN_VS_AI_INPUT:
-            # Draw title with difficulty info
             title_text = FONT.render(f"ENTER YOUR NAME ({ai_difficulty} Mode)", True, text_color)
             title_rect = title_text.get_rect(center=(SCREEN.get_width() // 2, 100))
             SCREEN.blit(title_text, title_rect)
-
-            # Draw input box
             human_player_input.draw(SCREEN, input_bg, input_active, text_color)
-
-            # Draw buttons
             human_vs_ai_start_button.draw(SCREEN, button_color, hover_color, text_color)
             human_vs_ai_back_button.draw(SCREEN, button_color, hover_color, text_color)
 
-        # The mode button is always visible
-        if has_images:
+        if has_images and sun_img and moon_img:
             mode_button.image = moon_img if is_dark_mode else sun_img
         else:
             mode_button.text = "☀️" if not is_dark_mode else "🌙"
         mode_button.draw(SCREEN, button_color, hover_color, text_color)
 
         pygame.display.flip()
-        clock.tick(60)  # Cap at 60 FPS
+        clock.tick(60)
 
-
-# Start the game
 main_menu()
