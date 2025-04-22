@@ -101,17 +101,19 @@ def cpu_move_easy(game):
     board = game.board
     legal_moves = game.get_legal_moves()
     overwrite_allowed = game.eater_turn_count % 3 == 2
-    passer_last = game.passer_last_move
 
     if not legal_moves:
         return None
 
-    # Overwrite Passer's last move if allowed
-    if overwrite_allowed and passer_last and passer_last in legal_moves:
-        print("Eater is overwriting your last move!")
-        return passer_last
+    # Overwrite any random Passer move if allowed
+    if overwrite_allowed:
+        passer_cells = [(r, c) for r in range(size) for c in range(size) if board[r][c] == 'P']
+        if passer_cells:
+            move = random.choice(passer_cells)
+            print("Eater is overwriting a random Passer marker!")
+            return move
 
-    # Block nearby Passer moves 
+    # Smarter blocking logic
     score_map = {}
     for r in range(size):
         for c in range(size):
@@ -119,15 +121,14 @@ def cpu_move_easy(game):
                 for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                     nr, nc = r + dr, c + dc
                     if 0 <= nr < size and 0 <= nc < size and (nr, nc) in legal_moves:
-                        score = nr  # Prefer lower rows
+                        score = nr
                         nearby = sum(
                             1 for ddr, ddc in [(-1, 0), (1, 0), (0, -1), (0, 1)]
                             if 0 <= nr + ddr < size and 0 <= nc + ddc < size and board[nr + ddr][nc + ddc] == 'P'
                         )
-                        score += nearby * 2  # Bonus for junctions
+                        score += nearby * 2
                         score_map[(nr, nc)] = max(score_map.get((nr, nc), 0), score)
 
-    # Pick highest scoring move or random fallback
     if score_map:
         move = max(score_map.items(), key=lambda x: x[1])[0]
     else:
