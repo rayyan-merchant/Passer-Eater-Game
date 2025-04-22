@@ -41,7 +41,6 @@ MENU_GAME_TYPE = 1
 MENU_HUMAN_VS_HUMAN_INPUT = 2
 MENU_HUMAN_VS_AI_INPUT = 3
 MENU_AI_DIFFICULTY = 4
-MENU_HUMAN_VS_HUMAN_DIFFICULTY = 5
 current_menu = MENU_MAIN
 
 # Player names
@@ -53,7 +52,6 @@ active_input = None
 
 # Difficulties
 ai_difficulty = None
-human_vs_human_difficulty = None
 
 # Define image variables as None initially
 sun_img = None
@@ -150,19 +148,7 @@ def back_to_game_selection():
     global current_menu
     current_menu = MENU_GAME_TYPE
 
-def back_to_difficulty_selection():
-    global current_menu
-    current_menu = MENU_HUMAN_VS_HUMAN_DIFFICULTY
-
 def show_human_vs_human_input():
-    global current_menu
-    current_menu = MENU_HUMAN_VS_HUMAN_DIFFICULTY  # First go to difficulty selection
-
-def show_human_vs_human_difficulty():
-    global current_menu
-    current_menu = MENU_HUMAN_VS_HUMAN_DIFFICULTY
-
-def show_human_vs_human_names():
     global current_menu, player1_name, player2_name, active_input
     current_menu = MENU_HUMAN_VS_HUMAN_INPUT
     player1_name = ""
@@ -178,11 +164,6 @@ def set_ai_difficulty(difficulty):
     ai_difficulty = difficulty
     show_human_vs_ai_input()
 
-def set_human_vs_human_difficulty(difficulty):
-    global human_vs_human_difficulty, current_menu
-    human_vs_human_difficulty = difficulty
-    show_human_vs_human_names()  # Transition to name input after difficulty selection
-
 def show_human_vs_ai_input():
     global current_menu, human_player_name, active_input
     current_menu = MENU_HUMAN_VS_AI_INPUT
@@ -191,16 +172,9 @@ def show_human_vs_ai_input():
 
 def start_human_vs_human_game():
     if player1_name.strip() and player2_name.strip():
-        print(f"Starting Human vs Human game with players: {player1_name} and {player2_name} on {human_vs_human_difficulty} difficulty")
-        if human_vs_human_difficulty == "Easy":
-            print("Loading easy_mode")
-            easy_mode()
-        elif human_vs_human_difficulty == "Medium":
-            print("Loading medium_mode")
-            # medium_mode()
-        elif human_vs_human_difficulty == "Hard":
-            print("Loading hard_mode")
-            play_game(9)  # Call play_game from hard.py with size=9
+        print(f"Starting Human vs Human game with players: {player1_name} and {player2_name}")
+        # Default to a standard mode, e.g., easy_mode or play_game with a fixed size
+        play_game(9)  # Use hard mode's play_game with size=9 as default
     else:
         print("Please enter names for both players")
 
@@ -303,19 +277,11 @@ difficulty_buttons_ai = [
     Button("Back", 200, 460, 600, 80, back_to_game_selection),
 ]
 
-# Difficulty Selection Buttons for Human vs Human
-difficulty_buttons_human = [
-    Button("Easy", 200, 160, 600, 80, lambda: set_human_vs_human_difficulty("Easy")),
-    Button("Medium", 200, 260, 600, 80, lambda: set_human_vs_human_difficulty("Medium")),
-    Button("Hard", 200, 360, 600, 80, lambda: set_human_vs_human_difficulty("Hard")),
-    Button("Back", 200, 460, 600, 80, back_to_game_selection),  # Updated to go back to game type selection
-]
-
 # Input boxes and buttons for Human vs Human
 player1_input = InputBox(250, 200, 500, 50, "Enter Player 1 (Passer) Name:")
 player2_input = InputBox(250, 300, 500, 50, "Enter Player 2 (Eater) Name:")
 human_vs_human_start_button = Button("Start Game", 350, 400, 300, 60, start_human_vs_human_game)
-human_vs_human_back_button = Button("Back", 350, 480, 300, 60, back_to_difficulty_selection)  # Updated to go back to difficulty selection
+human_vs_human_back_button = Button("Back", 350, 480, 300, 60, back_to_game_selection)  # Back to game type selection
 
 # Input box and buttons for Human vs AI
 human_player_input = InputBox(250, 250, 500, 50, "Enter Your Name:")
@@ -351,7 +317,7 @@ def main_menu():
                 for button in game_type_buttons:
                     button.check_click(event)
             elif current_menu == MENU_AI_DIFFICULTY:
-                for button in diversity_buttons_ai:
+                for button in difficulty_buttons_ai:
                     button.check_click(event)
             elif current_menu == MENU_HUMAN_VS_HUMAN_INPUT:
                 if player1_input.handle_event(event):
@@ -363,9 +329,6 @@ def main_menu():
                     active_input = None
                 human_vs_human_start_button.check_click(event)
                 human_vs_human_back_button.check_click(event)
-            elif current_menu == MENU_HUMAN_VS_HUMAN_DIFFICULTY:
-                for button in difficulty_buttons_human:
-                    button.check_click(event)
             elif current_menu == MENU_HUMAN_VS_AI_INPUT:
                 if human_player_input.handle_event(event):
                     human_player_name = human_player_input.text
@@ -402,12 +365,6 @@ def main_menu():
             player2_input.draw(SCREEN, input_bg, input_active, text_color)
             human_vs_human_start_button.draw(SCREEN, button_color, hover_color, text_color)
             human_vs_human_back_button.draw(SCREEN, button_color, hover_color, text_color)
-        elif current_menu == MENU_HUMAN_VS_HUMAN_DIFFICULTY:
-            diff_text = FONT.render("SELECT DIFFICULTY", True, text_color)
-            diff_rect = diff_text.get_rect(center=(SCREEN.get_width() // 2, 100))
-            SCREEN.blit(diff_text, diff_rect)
-            for button in difficulty_buttons_human:
-                button.draw(SCREEN, button_color, hover_color, text_color)
         elif current_menu == MENU_HUMAN_VS_AI_INPUT:
             title_text = FONT.render(f"ENTER YOUR NAME ({ai_difficulty} Mode)", True, text_color)
             title_rect = title_text.get_rect(center=(SCREEN.get_width() // 2, 100))
